@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SVD Interactive Lab — A = U Σ Vᵀ</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-2: #0b1220;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #34d399;
+      --accent-3: #fbbf24;
+      --danger: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--surface-2);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    header p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .header-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+    }
+    .tab-btn {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #082f49;
+      border-color: var(--accent);
+    }
+    .lang-toggle {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .lang-btn {
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .lang-btn.active {
+      background: var(--border);
+      color: var(--text);
+    }
+    main {
+      max-width: 1180px;
+      margin: 22px auto;
+      padding: 0 20px 44px;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .card + .card {
+      margin-top: 18px;
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    button.btn, label.btn {
+      padding: 6px 11px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: border-color 0.15s;
+    }
+    button.btn:hover, label.btn:hover { border-color: var(--accent); }
+    button.btn.primary {
+      background: var(--accent);
+      color: #082f49;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    button.btn.active-pill {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .slider-group { margin-top: 12px; }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      margin-bottom: 4px;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .stage-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      font-size: 0.78rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .stage-labels button {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      padding: 2px 0;
+    }
+    .stage-labels button:hover { color: var(--text); }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+    }
+    .factors {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .factor-box {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .factor-box.sigma-box {
+      border-color: rgba(251, 191, 36, 0.55);
+    }
+    .factor-box .title {
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .factor-box.sigma-box .title {
+      color: var(--accent-3);
+    }
+    .note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border-left: 3px solid var(--accent);
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+    .note.sigma-note {
+      border-left-color: var(--accent-3);
+    }
+    .note strong { color: var(--text); }
+    .sigma-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .sigma-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .sigma-item .k {
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+    .sigma-item .v {
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--accent-3);
+      margin: 2px 0;
+    }
+    .sigma-item .d {
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .energy-bar-wrap {
+      margin-top: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .energy-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: #1e293b;
+      overflow: hidden;
+      display: flex;
+      margin: 6px 0;
+    }
+    .energy-s1 { background: var(--accent); transition: width 0.15s; }
+    .energy-s2 { background: var(--accent-2); transition: width 0.15s; }
+    .energy-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--muted);
+    }
+    .img-compare-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 640px) {
+      .img-compare-3 { grid-template-columns: 1fr; }
+    }
+    .img-box { text-align: center; }
+    .img-box canvas {
+      image-rendering: pixelated;
+      aspect-ratio: 1 / 1;
+    }
+    .img-box .caption {
+      margin-top: 6px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .stat {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat .val {
+      font-size: 1.08rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      color: var(--accent);
+    }
+    .stat .lbl {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .sigma-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.76rem;
+    }
+    .sigma-pill {
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .sigma-pill.cutoff {
+      border-color: rgba(248, 113, 113, 0.65);
+      color: var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 data-i18n="title">Singular Value Decomposition (SVD) Lab</h1>
+      <p data-i18n="subtitle">Interactive exploration of A = U Σ Vᵀ — Geometry, Singular Values (Σ), and Low-Rank Compression</p>
+    </div>
+    <div class="header-controls">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="geom" data-i18n="tabGeom">1. 2D Geometric View</button>
+        <button class="tab-btn" data-tab="compress" data-i18n="tabCompress">2. Image Compression (Rank-k)</button>
+      </div>
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="zh">中文</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: 2D GEOMETRY -->
+    <section id="tab-geom" class="panel active">
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="btn-row" style="justify-content: space-between; align-items: center;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn preset" data-p="shear" data-i18n="presetShear">Shear</button>
+                <button class="btn preset" data-p="stretch" data-i18n="presetStretch">Stretch &amp; Rotate</button>
+                <button class="btn preset" data-p="rank1" data-i18n="presetRank1">Rank-1 (Singular)</button>
+                <button class="btn preset" data-p="reflect" data-i18n="presetReflect">Reflection</button>
+              </div>
+              <button id="playBtn" class="btn primary" data-i18n="play">Play Animation</button>
+            </div>
+            <canvas id="geomCanvas" height="360"></canvas>
+            <div class="slider-group">
+              <div class="slider-label">
+                <span id="stageTitle">Stage 0: Unit Circle x</span>
+                <span id="stageVal">t = 0.00</span>
+              </div>
+              <input id="stageSlider" type="range" min="0" max="3" step="0.01" value="0" />
+              <div class="stage-labels">
+                <button data-s="0" style="text-align:left">0: x</button>
+                <button data-s="1" style="text-align:center">1: Vᵀx</button>
+                <button data-s="2" style="text-align:center">2: ΣVᵀx</button>
+                <button data-s="3" style="text-align:right">3: UΣVᵀx</button>
+              </div>
+            </div>
+            <div id="geomStepExplain" class="note"></div>
+          </div>
+
+          <!-- Dedicated Sigma Deep Dive Card -->
+          <div class="card">
+            <h2 data-i18n="sigmaDiveTitle">Deep Dive into Singular Values (Σ = diag(σ₁, σ₂))</h2>
+            <div class="sigma-grid">
+              <div class="sigma-item">
+                <div class="k" data-i18n="s1Label">σ₁ = ‖A‖₂ (Spectral Norm)</div>
+                <div class="v" id="sd-s1">1.90</div>
+                <div class="d" data-i18n="s1Desc">Maximum stretch factor of any unit vector (along v₁ → σ₁u₁).</div>
+              </div>
+              <div class="sigma-item">
+                <div class="k" data-i18n="s2Label">σ₂ (Min Stretch)</div>
+                <div class="v" id="sd-s2">0.79</div>
+                <div class="d" id="sd-s2-desc" data-i18n="s2Desc">Minimum stretch factor (along v₂ → σ₂u₂). Zero means rank collapse.</div>
+              </div>
+              <div class="sigma-item">
+                <div class="k" data-i18n="areaLabel">σ₁ · σ₂ = |det(A)| (Area Factor)</div>
+                <div class="v" id="sd-area">1.50</div>
+                <div class="d" data-i18n="areaDesc">The unit circle (area π) maps to an ellipse of area π·σ₁·σ₂.</div>
+              </div>
+              <div class="sigma-item">
+                <div class="k" data-i18n="frobLabel">√(σ₁² + σ₂²) = ‖A‖_F (Frobenius)</div>
+                <div class="v" id="sd-frob">2.06</div>
+                <div class="d" data-i18n="frobDesc">Total matrix energy: σ₁² + σ₂² equals the sum of squared entries Σ aᵢⱼ².</div>
+              </div>
+            </div>
+
+            <div class="energy-bar-wrap">
+              <div class="slider-label" style="margin-bottom:2px;">
+                <span data-i18n="energySplitTitle">Energy Contribution (σᵢ² / Σ σⱼ²)</span>
+                <span id="sd-rank-tag">Rank = 2</span>
+              </div>
+              <div class="energy-bar">
+                <div id="bar-s1" class="energy-s1" style="width:85%"></div>
+                <div id="bar-s2" class="energy-s2" style="width:15%"></div>
+              </div>
+              <div class="energy-legend">
+                <span id="leg-s1" style="color:var(--accent)">σ₁²: 85.3%</span>
+                <span id="leg-s2" style="color:var(--accent-2)">σ₂²: 14.7%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <h2 data-i18n="matrixATitle">Matrix A (2×2)</h2>
+            <div class="matrix-grid">
+              <div>
+                <div class="slider-label"><span>a₁₁</span><span id="v-a">1.50</span></div>
+                <input id="i-a" type="range" min="-2.5" max="2.5" step="0.1" value="1.5" />
+              </div>
+              <div>
+                <div class="slider-label"><span>a₁₂</span><span id="v-b">1.00</span></div>
+                <input id="i-b" type="range" min="-2.5" max="2.5" step="0.1" value="1.0" />
+              </div>
+              <div>
+                <div class="slider-label"><span>a₂₁</span><span id="v-c">0.00</span></div>
+                <input id="i-c" type="range" min="-2.5" max="2.5" step="0.1" value="0.0" />
+              </div>
+              <div>
+                <div class="slider-label"><span>a₂₂</span><span id="v-d">1.00</span></div>
+                <input id="i-d" type="range" min="-2.5" max="2.5" step="0.1" value="1.0" />
+              </div>
+            </div>
+
+            <h2 style="margin-top:18px;" data-i18n="factorsTitle">SVD Factors: A = U Σ Vᵀ</h2>
+            <div class="factors">
+              <div class="factor-box"><div class="title">U</div><div id="out-u"></div></div>
+              <div class="factor-box sigma-box"><div class="title">Σ</div><div id="out-s"></div></div>
+              <div class="factor-box"><div class="title">Vᵀ</div><div id="out-vt"></div></div>
+            </div>
+
+            <div class="stats-row">
+              <div class="stat"><div class="val" id="out-det">1.50</div><div class="lbl" data-i18n="statDet">det(A)</div></div>
+              <div class="stat"><div class="val" id="out-cond">2.41</div><div class="lbl" data-i18n="statCond">Cond κ = σ₁/σ₂</div></div>
+              <div class="stat"><div class="val" id="out-rank">2</div><div class="lbl" data-i18n="statRank">Rank(A)</div></div>
+            </div>
+
+            <div class="note sigma-note" data-i18n="condNote">
+              <strong>Condition Number κ(A) = σ₁ / σ₂:</strong> Measures how stretched the ellipse is.
+              A large κ means the matrix is nearly singular and amplifies noise when solving Ax = b; κ = 1 means a pure rotation/uniform scaling.
+            </div>
+            <div class="note" data-i18n="outerNote">
+              <strong>Rank-1 Sum View:</strong> A = σ₁ u₁v₁ᵀ + σ₂ u₂v₂ᵀ. Each σᵢ weights a rank-1 layer — dropping small σᵢ is the foundation of PCA and image compression!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: IMAGE COMPRESSION -->
+    <section id="tab-compress" class="panel">
+      <div class="grid-2">
+        <div class="card">
+          <div class="btn-row" style="justify-content: space-between; align-items: center;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn pattern-btn" data-pat="rings" data-i18n="patRings">Concentric Rings</button>
+              <button class="btn pattern-btn" data-pat="checker" data-i18n="patChecker">Checker + Gradient</button>
+              <button class="btn pattern-btn" data-pat="shapes" data-i18n="patShapes">Geometric Scene</button>
+            </div>
+            <label class="btn" style="cursor:pointer;">
+              <span data-i18n="uploadImg">Upload Image</span>
+              <input id="imgUpload" type="file" accept="image/*" style="display:none" />
+            </label>
+          </div>
+
+          <div class="img-compare-3">
+            <div class="img-box">
+              <canvas id="origCanvas" width="48" height="48"></canvas>
+              <div class="caption" data-i18n="capOrig">Original A (48×48)</div>
+            </div>
+            <div class="img-box">
+              <canvas id="reconCanvas" width="48" height="48"></canvas>
+              <div class="caption" id="reconCaption">Rank-6 Approximation Aₖ</div>
+            </div>
+            <div class="img-box">
+              <canvas id="diffCanvas" width="48" height="48"></canvas>
+              <div class="caption" data-i18n="capDiff">Residual |A − Aₖ| (×3)</div>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-label">
+              <span data-i18n="rankSliderLbl">Singular values kept (rank k)</span>
+              <span id="kReadout">k = 6 / 48</span>
+            </div>
+            <input id="kSlider" type="range" min="1" max="48" step="1" value="6" />
+          </div>
+
+          <div class="sigma-pills" id="sigmaPills"></div>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span data-i18n="specTitle">Singular Value Spectrum (σ₁ ≥ σ₂ ≥ … ≥ σ₄₈)</span>
+            <button id="scaleToggle" class="btn" data-i18n="scaleLinear">Scale: Linear</button>
+          </h2>
+          <canvas id="specCanvas" height="235"></canvas>
+          <div class="stats-row">
+            <div class="stat"><div class="val" id="stat-energy">95.2%</div><div class="lbl" data-i18n="statEnergy">Energy Σσᵢ²</div></div>
+            <div class="stat"><div class="val" id="stat-ratio">25.0%</div><div class="lbl" data-i18n="statStorage">Storage Used</div></div>
+            <div class="stat"><div class="val" id="stat-err">0.08</div><div class="lbl" data-i18n="statRelErr">Rel. Frob. Error</div></div>
+          </div>
+          <div class="note sigma-note" data-i18n="eckartNote">
+            <strong>Eckart–Young Theorem &amp; σₖ₊₁:</strong> Keeping the top <em>k</em> singular values gives the optimal rank-<em>k</em> approximation Aₖ = Σᵢ₌₁ᵏ σᵢ uᵢ vᵢᵀ.
+            The worst-case spectral error ‖A − Aₖ‖₂ is <strong>exactly σₖ₊₁</strong>, and the squared Frobenius error is Σᵢ₌ₖ₊₁ⁿ σᵢ² (the yellow curve shows cumulative energy).
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ---------- I18N Dictionary ----------
+    const I18N = {
+      en: {
+        title: 'Singular Value Decomposition (SVD) Lab',
+        subtitle: 'Interactive exploration of A = U Σ Vᵀ — Geometry, Singular Values (Σ), and Low-Rank Compression',
+        tabGeom: '1. 2D Geometric View',
+        tabCompress: '2. Image Compression (Rank-k)',
+        presetShear: 'Shear',
+        presetStretch: 'Stretch & Rotate',
+        presetRank1: 'Rank-1 (Singular)',
+        presetReflect: 'Reflection',
+        play: 'Play Animation',
+        pause: 'Pause',
+        matrixATitle: 'Matrix A (2×2)',
+        factorsTitle: 'SVD Factors: A = U Σ Vᵀ',
+        statDet: 'det(A)',
+        statCond: 'Cond κ = σ₁/σ₂',
+        statRank: 'Rank(A)',
+        sigmaDiveTitle: 'Deep Dive into Singular Values (Σ = diag(σ₁, σ₂))',
+        s1Label: 'σ₁ = ‖A‖₂ (Spectral Norm)',
+        s1Desc: 'Maximum stretch factor of any unit vector (along v₁ → σ₁u₁).',
+        s2Label: 'σ₂ (Min Stretch)',
+        s2Desc: 'Minimum stretch factor (along v₂ → σ₂u₂). Zero means rank collapse.',
+        s2ZeroDesc: 'σ₂ ≈ 0! Matrix is singular — 2D space collapses onto a 1D line.',
+        areaLabel: 'σ₁ · σ₂ = |det(A)| (Area Factor)',
+        areaDesc: 'The unit circle (area π) maps to an ellipse of area π·σ₁·σ₂.',
+        frobLabel: '√(σ₁² + σ₂²) = ‖A‖_F (Frobenius)',
+        frobDesc: 'Total matrix energy: σ₁² + σ₂² equals the sum of squared entries Σ aᵢⱼ².',
+        energySplitTitle: 'Energy Contribution (σᵢ² / Σ σⱼ²)',
+        condNote: '<strong>Condition Number κ(A) = σ₁ / σ₂:</strong> Measures how stretched the ellipse is. A large κ means the matrix is nearly singular and amplifies noise when solving Ax = b; κ = 1 means pure rotation or uniform scaling.',
+        outerNote: '<strong>Rank-1 Sum View:</strong> A = σ₁ u₁v₁ᵀ + σ₂ u₂v₂ᵀ. Each σᵢ weights a rank-1 layer — dropping small σᵢ is the foundation of PCA and image compression!',
+        patRings: 'Concentric Rings',
+        patChecker: 'Checker + Gradient',
+        patShapes: 'Geometric Scene',
+        uploadImg: 'Upload Image',
+        capOrig: 'Original A (48×48)',
+        capRecon: k => `Rank-${k} Approx Aₖ`,
+        capDiff: 'Residual |A − Aₖ| (×3)',
+        rankSliderLbl: 'Singular values kept (rank k)',
+        specTitle: 'Singular Value Spectrum (σ₁ ≥ σ₂ ≥ … ≥ σ₄₈)',
+        scaleLinear: 'Scale: Linear',
+        scaleLog: 'Scale: Log₁₀',
+        statEnergy: 'Energy Retained',
+        statStorage: 'Storage Used',
+        statRelErr: 'Rel. Frob. Error',
+        eckartNote: '<strong>Eckart–Young Theorem &amp; σₖ₊₁:</strong> Keeping the top <em>k</em> singular values gives the optimal rank-<em>k</em> approximation Aₖ = Σᵢ₌₁ᵏ σᵢ uᵢ vᵢᵀ. The spectral-norm error ‖A − Aₖ‖₂ is <strong>exactly σₖ₊₁</strong>, and the yellow curve tracks cumulative energy Σσᵢ².',
+        stages: [
+          'Stage 0: Unit Circle x',
+          'Stage 1: Rotate by Vᵀ',
+          'Stage 2: Stretch by Σ',
+          'Stage 3: Rotate by U',
+          'Stage 3: Reflect & Rotate by U'
+        ],
+        stageDesc: [
+          '<strong>Input Space:</strong> The unit circle with right singular vectors <strong>v₁, v₂</strong> — the unique orthogonal directions that remain orthogonal after applying A.',
+          '<strong>Step 1 (Vᵀ):</strong> Orthogonal rotation aligning v₁, v₂ with the standard x and y axes. Lengths and angles are preserved.',
+          (s1, s2) => `<strong>Step 2 (Σ):</strong> Scales the x-axis by <strong>σ₁ = ${s1}</strong> and the y-axis by <strong>σ₂ = ${s2}</strong>, turning the circle into an axis-aligned ellipse.`,
+          '<strong>Step 3 (U):</strong> Rotates/reflects the ellipse onto the left singular vectors <strong>u₁, u₂</strong>, completing A = UΣVᵀ.'
+        ],
+        specKept: k => `Kept: 1..${k} (blue) | Cumulative Energy (yellow)`,
+        cutoffLabel: (k, val) => `‖A − Aₖ‖₂ = σ${k+1} = ${val}`,
+        exactLabel: 'Exact reconstruction (σₖ₊₁ = 0)'
+      },
+      zh: {
+        title: '奇异值分解 (SVD) 交互实验室',
+        subtitle: '可视化探索 A = U Σ Vᵀ —— 几何变换、奇异值 Σ 深度解析与低秩图像压缩',
+        tabGeom: '1. 二维几何视图',
+        tabCompress: '2. 图像压缩 (低秩近似)',
+        presetShear: '剪切矩阵',
+        presetStretch: '拉伸 + 旋转',
+        presetRank1: '秩-1 (奇异矩阵)',
+        presetReflect: '反射变换',
+        play: '播放动画',
+        pause: '暂停',
+        matrixATitle: '矩阵 A (2×2)',
+        factorsTitle: 'SVD 分解因子：A = U Σ Vᵀ',
+        statDet: '行列式 det(A)',
+        statCond: '条件数 κ = σ₁/σ₂',
+        statRank: '矩阵秩 Rank(A)',
+        sigmaDiveTitle: '奇异值 Σ = diag(σ₁, σ₂) 深度解析',
+        s1Label: 'σ₁ = ‖A‖₂（谱范数 / 最大拉伸）',
+        s1Desc: '单位向量经矩阵 A 变换后的最大伸缩倍数（沿 v₁ → σ₁u₁ 方向）。',
+        s2Label: 'σ₂（最小拉伸倍数）',
+        s2Desc: '单位向量的最小伸缩倍数（沿 v₂ → σ₂u₂ 方向）。为 0 表示降维。',
+        s2ZeroDesc: 'σ₂ ≈ 0！矩阵奇异（降秩），二维平面被压扁为一条一维直线。',
+        areaLabel: 'σ₁ · σ₂ = |det(A)|（面积缩放）',
+        areaDesc: '单位圆（面积 π）映射为面积 π·σ₁·σ₂ 的椭圆，等于行列式绝对值。',
+        frobLabel: '√(σ₁² + σ₂²) = ‖A‖_F（Frobenius 范数）',
+        frobDesc: '矩阵总“能量”：σ₁² + σ₂² 恒等于所有矩阵元素的平方和 Σ aᵢⱼ²。',
+        energySplitTitle: '奇异值能量占比 (σᵢ² / Σ σⱼ²)',
+        condNote: '<strong>条件数 κ(A) = σ₁ / σ₂：</strong>衡量椭圆被“压扁”的程度。κ 越大，矩阵越接近奇异，求解 Ax = b 时对噪声越敏感；κ = 1 表示纯旋转或等比缩放。',
+        outerNote: '<strong>秩-1 叠加视角：</strong>A = σ₁ u₁v₁ᵀ + σ₂ u₂v₂ᵀ。每个 σᵢ 代表一个秩-1 图层的权重——丢弃较小的 σᵢ 正是 PCA 降维和图像压缩的核心原理！',
+        patRings: '同心波纹',
+        patChecker: '棋盘 + 渐变',
+        patShapes: '几何图形',
+        uploadImg: '上传图片',
+        capOrig: '原图矩阵 A (48×48)',
+        capRecon: k => `秩-${k} 重建图像 Aₖ`,
+        capDiff: '残差 |A − Aₖ| (放大3倍)',
+        rankSliderLbl: '保留的奇异值个数（秩 k）',
+        specTitle: '奇异值谱 (σ₁ ≥ σ₂ ≥ … ≥ σ₄₈)',
+        scaleLinear: '坐标：线性',
+        scaleLog: '坐标：对数 Log₁₀',
+        statEnergy: '保留能量占比',
+        statStorage: '存储开销占比',
+        statRelErr: '相对重构误差',
+        eckartNote: '<strong>Eckart–Young 定理与 σₖ₊₁：</strong>仅保留前 <em>k</em> 个奇异值即可得到数学上最优的秩-<em>k</em> 近似 Aₖ = Σᵢ₌₁ᵏ σᵢ uᵢ vᵢᵀ。谱范数误差 ‖A − Aₖ‖₂ <strong>恰好等于被丢弃的第一个奇异值 σₖ₊₁</strong>；黄色曲线表示累计能量占比。',
+        stages: [
+          '阶段 0：原始单位圆 x',
+          '阶段 1：Vᵀ 旋转对齐',
+          '阶段 2：Σ 沿坐标轴拉伸',
+          '阶段 3：U 旋转到最终方向',
+          '阶段 3：U 反射并旋转到最终方向'
+        ],
+        stageDesc: [
+          '<strong>输入空间：</strong>单位圆及其右奇异向量 <strong>v₁, v₂</strong>——它们是经 A 变换后依然保持正交的特殊方向。',
+          '<strong>第 1 步 (Vᵀ)：</strong>正交旋转，将 v₁, v₂ 对齐到标准 x、y 坐标轴，不改变长度与夹角。',
+          (s1, s2) => `<strong>第 2 步 (Σ)：</strong>沿 x 轴拉伸 <strong>σ₁ = ${s1}</strong> 倍，沿 y 轴拉伸 <strong>σ₂ = ${s2}</strong> 倍，单位圆变为轴对齐椭圆。`,
+          '<strong>第 3 步 (U)：</strong>将椭圆旋转/反射至左奇异向量 <strong>u₁, u₂</strong> 方向，完成 A = UΣVᵀ。'
+        ],
+        specKept: k => `保留: 1..${k} (蓝) | 累计能量曲线 (黄)`,
+        cutoffLabel: (k, val) => `截断误差 ‖A − Aₖ‖₂ = σ${k+1} = ${val}`,
+        exactLabel: '完全无损重建 (σₖ₊₁ = 0)'
+      }
+    };
+
+    let lang = localStorage.getItem('svd_lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en');
+    const tr = key => I18N[lang][key];
+
+    function applyLang() {
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (I18N[lang][key] !== undefined) el.innerHTML = I18N[lang][key];
+      });
+      playBtn.textContent = playing ? tr('pause') : tr('play');
+      scaleToggle.textContent = logScale ? tr('scaleLog') : tr('scaleLinear');
+      drawGeom();
+      if (imgSVD) updateCompression();
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        lang = btn.dataset.lang;
+        localStorage.setItem('svd_lang', lang);
+        applyLang();
+      });
+    });
+
+    // ---------- Tabs ----------
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'geom') drawGeom();
+        else drawSpectrum();
+      });
+    });
+
+    // ---------- TAB 1: 2D GEOMETRY ----------
+    const gCanvas = document.getElementById('geomCanvas');
+    const gCtx = gCanvas.getContext('2d');
+    const gIn = { a: document.getElementById('i-a'), b: document.getElementById('i-b'), c: document.getElementById('i-c'), d: document.getElementById('i-d') };
+    const gVal = { a: document.getElementById('v-a'), b: document.getElementById('v-b'), c: document.getElementById('v-c'), d: document.getElementById('v-d') };
+    const stageSlider = document.getElementById('stageSlider');
+    const playBtn = document.getElementById('playBtn');
+
+    const PRESETS = {
+      shear:   { a: 1.5, b: 1.0, c: 0.0, d: 1.0 },
+      stretch: { a: 1.4, b: -0.9, c: 0.7, d: 1.2 },
+      rank1:   { a: 1.6, b: 0.8, c: 0.8, d: 0.4 },
+      reflect: { a: 1.2, b: 0.9, c: 0.9, d: -0.6 }
+    };
+    let gState = { a: 1.5, b: 1.0, c: 0.0, d: 1.0, t: 0 };
+    let playing = false, animId = null, lastTs = 0;
+
+    function svd2x2(a, b, c, d) {
+      const p = a*a + c*c, q = a*b + c*d, r = b*b + d*d;
+      let phi = 0.5 * Math.atan2(2*q, p - r);
+      let cp = Math.cos(phi), sp = Math.sin(phi);
+      let l1 = cp*cp*p + 2*cp*sp*q + sp*sp*r;
+      let l2 = sp*sp*p - 2*cp*sp*q + cp*cp*r;
+      if (l2 > l1) { phi += Math.PI/2; cp = Math.cos(phi); sp = Math.sin(phi); [l1, l2] = [l2, l1]; }
+      const s1 = Math.sqrt(Math.max(0, l1)), s2 = Math.sqrt(Math.max(0, l2));
+      const v1 = [cp, sp], v2 = [-sp, cp];
+      const u1 = s1 > 1e-9 ? [(a*v1[0] + b*v1[1])/s1, (c*v1[0] + d*v1[1])/s1] : [1, 0];
+      const u2 = s2 > 1e-9 ? [(a*v2[0] + b*v2[1])/s2, (c*v2[0] + d*v2[1])/s2] : [-u1[1], u1[0]];
+      const detU = u1[0]*u2[1] - u1[1]*u2[0];
+      const theta = Math.atan2(u1[1], u1[0]);
+      return { u: [[u1[0], u2[0]], [u1[1], u2[1]]], s: [s1, s2], vt: [[v1[0], v1[1]], [v2[0], v2[1]]], phi, theta, isReflection: detU < 0, v1, v2 };
+    }
+    const mul2 = (M, N) => [
+      [M[0][0]*N[0][0] + M[0][1]*N[1][0], M[0][0]*N[0][1] + M[0][1]*N[1][1]],
+      [M[1][0]*N[0][0] + M[1][1]*N[1][0], M[1][0]*N[0][1] + M[1][1]*N[1][1]]
+    ];
+    const rot2 = ang => [[Math.cos(ang), -Math.sin(ang)], [Math.sin(ang), Math.cos(ang)]];
+    const app2 = (M, v) => [M[0][0]*v[0] + M[0][1]*v[1], M[1][0]*v[0] + M[1][1]*v[1]];
+    const fmt = n => (Math.abs(n) < 0.005 ? 0 : n).toFixed(2);
+    const matHtml = m => `<div>${fmt(m[0][0])} ${fmt(m[0][1])}</div><div>${fmt(m[1][0])} ${fmt(m[1][1])}</div>`;
+
+    function drawArrow(ctx, cx, cy, sc, vec, color, label) {
+      const ex = cx + vec[0]*sc, ey = cy - vec[1]*sc;
+      const dx = ex - cx, dy = ey - cy, len = Math.hypot(dx, dy);
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); ctx.stroke();
+      if (len > 8) {
+        const ang = Math.atan2(dy, dx), h = 9;
+        ctx.beginPath();
+        ctx.moveTo(ex, ey);
+        ctx.lineTo(ex - h*Math.cos(ang - 0.4), ey - h*Math.sin(ang - 0.4));
+        ctx.lineTo(ex - h*Math.cos(ang + 0.4), ey - h*Math.sin(ang + 0.4));
+        ctx.closePath(); ctx.fill();
+      }
+      if (label && len > 6) {
+        ctx.font = '600 13px ui-monospace, monospace';
+        ctx.fillText(label, ex + (dx/(len||1))*14 - 8, ey + (dy/(len||1))*14 + 4);
+      }
+      ctx.restore();
+    }
+
+    function drawGeom() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = gCanvas.getBoundingClientRect();
+      if (rect.width === 0) return;
+      gCanvas.width = Math.round(rect.width * dpr);
+      gCanvas.height = Math.round(360 * dpr);
+      gCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const w = rect.width, h = 360, cx = w/2, cy = h/2, sc = Math.min(w, h) / 6.2;
+      const svd = svd2x2(gState.a, gState.b, gState.c, gState.d);
+      const t1 = Math.min(1, Math.max(0, gState.t));
+      const t2 = Math.min(1, Math.max(0, gState.t - 1));
+      const t3 = Math.min(1, Math.max(0, gState.t - 2));
+      const M1 = rot2(-svd.phi * t1);
+      const M2 = [[1 + (svd.s[0]-1)*t2, 0], [0, 1 + (svd.s[1]-1)*t2]];
+      const M3 = svd.isReflection ? mul2(rot2(svd.theta * t3), [[1, 0], [0, 1 - 2*t3]]) : rot2(svd.theta * t3);
+      const M = mul2(M3, mul2(M2, M1));
+
+      gCtx.clearRect(0, 0, w, h);
+      gCtx.strokeStyle = '#1e293b'; gCtx.lineWidth = 1;
+      for (let i = -5; i <= 5; i++) {
+        gCtx.beginPath(); gCtx.moveTo(cx + i*sc, 0); gCtx.lineTo(cx + i*sc, h); gCtx.stroke();
+        gCtx.beginPath(); gCtx.moveTo(0, cy - i*sc); gCtx.lineTo(w, cy - i*sc); gCtx.stroke();
+      }
+      gCtx.strokeStyle = '#475569';
+      gCtx.beginPath(); gCtx.moveTo(0, cy); gCtx.lineTo(w, cy); gCtx.moveTo(cx, 0); gCtx.lineTo(cx, h); gCtx.stroke();
+
+      // Ghost unit circle
+      gCtx.save(); gCtx.setLineDash([5, 5]); gCtx.strokeStyle = '#64748b';
+      gCtx.beginPath(); gCtx.arc(cx, cy, sc, 0, Math.PI*2); gCtx.stroke(); gCtx.restore();
+
+      // Transformed circle
+      gCtx.beginPath();
+      for (let i = 0; i <= 100; i++) {
+        const ang = (i/100)*Math.PI*2;
+        const p = app2(M, [Math.cos(ang), Math.sin(ang)]);
+        if (i === 0) gCtx.moveTo(cx + p[0]*sc, cy - p[1]*sc);
+        else gCtx.lineTo(cx + p[0]*sc, cy - p[1]*sc);
+      }
+      gCtx.closePath();
+      gCtx.fillStyle = 'rgba(56, 189, 248, 0.14)'; gCtx.fill();
+      gCtx.strokeStyle = '#38bdf8'; gCtx.lineWidth = 2.4; gCtx.stroke();
+
+      const tv1 = app2(M, svd.v1), tv2 = app2(M, svd.v2);
+      const l1 = gState.t > 2.5 ? 'σ₁u₁' : (gState.t > 1.5 ? 'σ₁e₁' : (gState.t > 0.5 ? 'e₁' : 'v₁'));
+      const l2 = gState.t > 2.5 ? 'σ₂u₂' : (gState.t > 1.5 ? 'σ₂e₂' : (gState.t > 0.5 ? 'e₂' : 'v₂'));
+      drawArrow(gCtx, cx, cy, sc, tv1, '#38bdf8', l1);
+      drawArrow(gCtx, cx, cy, sc, tv2, '#34d399', l2);
+
+      // Matrix factors & stats
+      const s1 = svd.s[0], s2 = svd.s[1];
+      const rank = (s1 > 1e-6 ? 1 : 0) + (s2 > 1e-6 ? 1 : 0);
+      const det = gState.a*gState.d - gState.b*gState.c;
+      const frob = Math.hypot(s1, s2);
+      const eTotal = s1*s1 + s2*s2;
+      const e1Pct = eTotal > 1e-9 ? (s1*s1 / eTotal) * 100 : 50;
+      const e2Pct = eTotal > 1e-9 ? (s2*s2 / eTotal) * 100 : 50;
+
+      document.getElementById('out-u').innerHTML = matHtml(svd.u);
+      document.getElementById('out-s').innerHTML = `<div>${fmt(s1)} 0.00</div><div>0.00 ${fmt(s2)}</div>`;
+      document.getElementById('out-vt').innerHTML = matHtml(svd.vt);
+      document.getElementById('out-det').textContent = fmt(det);
+      document.getElementById('out-cond').textContent = s2 > 1e-6 ? (s1/s2).toFixed(2) : '∞';
+      document.getElementById('out-rank').textContent = rank;
+
+      // Sigma Deep Dive readouts
+      document.getElementById('sd-s1').textContent = fmt(s1);
+      document.getElementById('sd-s2').textContent = fmt(s2);
+      document.getElementById('sd-s2-desc').textContent = s2 < 1e-4 ? tr('s2ZeroDesc') : tr('s2Desc');
+      document.getElementById('sd-area').textContent = fmt(s1 * s2);
+      document.getElementById('sd-frob').textContent = fmt(frob);
+      document.getElementById('sd-rank-tag').textContent = `Rank = ${rank}`;
+      document.getElementById('bar-s1').style.width = e1Pct.toFixed(1) + '%';
+      document.getElementById('bar-s2').style.width = e2Pct.toFixed(1) + '%';
+      document.getElementById('leg-s1').textContent = `σ₁²: ${e1Pct.toFixed(1)}%`;
+      document.getElementById('leg-s2').textContent = `σ₂²: ${e2Pct.toFixed(1)}%`;
+
+      document.getElementById('stageVal').textContent = `t = ${gState.t.toFixed(2)}`;
+      const stages = tr('stages');
+      const descs = tr('stageDesc');
+      let idx = 0;
+      if (gState.t < 0.05) idx = 0;
+      else if (gState.t <= 1.0) idx = 1;
+      else if (gState.t <= 2.0) idx = 2;
+      else idx = 3;
+
+      document.getElementById('stageTitle').textContent = (idx === 3 && svd.isReflection) ? stages[4] : stages[idx];
+      document.getElementById('geomStepExplain').innerHTML = idx === 2 ? descs[2](fmt(s1), fmt(s2)) : descs[idx];
+    }
+
+    for (const k of ['a','b','c','d']) {
+      gIn[k].addEventListener('input', () => { gState[k] = parseFloat(gIn[k].value); gVal[k].textContent = fmt(gState[k]); drawGeom(); });
+    }
+    stageSlider.addEventListener('input', () => { stopAnim(); gState.t = parseFloat(stageSlider.value); drawGeom(); });
+    document.querySelectorAll('.stage-labels button').forEach(b => b.addEventListener('click', () => { stopAnim(); gState.t = parseFloat(b.dataset.s); stageSlider.value = gState.t; drawGeom(); }));
+    document.querySelectorAll('.preset').forEach(b => b.addEventListener('click', () => {
+      Object.assign(gState, PRESETS[b.dataset.p]);
+      for (const k of ['a','b','c','d']) { gIn[k].value = gState[k]; gVal[k].textContent = fmt(gState[k]); }
+      drawGeom();
+    }));
+
+    function stopAnim() { playing = false; playBtn.textContent = tr('play'); if (animId) cancelAnimationFrame(animId); }
+    playBtn.addEventListener('click', () => {
+      if (playing) { stopAnim(); return; }
+      if (gState.t >= 2.98) gState.t = 0;
+      playing = true; lastTs = 0; playBtn.textContent = tr('pause');
+      const step = ts => {
+        if (!playing) return;
+        if (!lastTs) lastTs = ts;
+        gState.t += ((ts - lastTs)/1000) * 0.65;
+        lastTs = ts;
+        if (gState.t >= 3) { gState.t = 3; stageSlider.value = 3; drawGeom(); stopAnim(); return; }
+        stageSlider.value = gState.t; drawGeom(); animId = requestAnimationFrame(step);
+      };
+      animId = requestAnimationFrame(step);
+    });
+
+    // ---------- TAB 2: GENERAL NxN SVD (Jacobi on A^T A) ----------
+    const N = 48;
+    let imgMatrix = null;
+    let imgSVD = null;
+    let logScale = false;
+    const scaleToggle = document.getElementById('scaleToggle');
+
+    scaleToggle.addEventListener('click', () => {
+      logScale = !logScale;
+      scaleToggle.textContent = logScale ? tr('scaleLog') : tr('scaleLinear');
+      drawSpectrum();
+    });
+
+    function makePattern(kind) {
+      const A = Array.from({ length: N }, () => new Float64Array(N));
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          const u = (x / (N - 1)) * 2 - 1;
+          const v = (y / (N - 1)) * 2 - 1;
+          let val = 0;
+          if (kind === 'rings') {
+            const r = Math.hypot(u, v);
+            val = 0.5 + 0.5 * Math.cos(r * 14) * Math.exp(-r * 0.8);
+          } else if (kind === 'checker') {
+            const chk = ((Math.floor(x / 6) + Math.floor(y / 6)) % 2 === 0) ? 0.85 : 0.15;
+            val = chk * 0.65 + (x / N) * 0.35;
+          } else {
+            val = 0.12 + 0.25 * (1 - y / N);
+            if (Math.hypot(u + 0.32, v + 0.25) < 0.38) val = 0.92;
+            if (Math.abs(u - v) < 0.14 && Math.abs(u + v) < 1.3) val = 0.65;
+            if (u > 0.15 && u < 0.72 && v > 0.15 && v < 0.72) val = 0.85;
+          }
+          A[y][x] = Math.max(0, Math.min(1, val));
+        }
+      }
+      return A;
+    }
+
+    function computeSVD_NxN(A) {
+      const B = Array.from({ length: N }, () => new Float64Array(N));
+      for (let i = 0; i < N; i++) {
+        for (let j = i; j < N; j++) {
+          let sum = 0;
+          for (let k = 0; k < N; k++) sum += A[k][i] * A[k][j];
+          B[i][j] = sum; B[j][i] = sum;
+        }
+      }
+      const V = Array.from({ length: N }, (_, i) => {
+        const row = new Float64Array(N); row[i] = 1; return row;
+      });
+      for (let sweep = 0; sweep < 8; sweep++) {
+        for (let p = 0; p < N - 1; p++) {
+          for (let q = p + 1; q < N; q++) {
+            const apq = B[p][q];
+            if (Math.abs(apq) < 1e-10) continue;
+            const tau = (B[q][q] - B[p][p]) / (2 * apq);
+            const t = Math.sign(tau || 1) / (Math.abs(tau) + Math.sqrt(1 + tau * tau));
+            const c = 1 / Math.sqrt(1 + t * t), s = t * c;
+            const app = B[p][p], aqq = B[q][q];
+            B[p][p] = app - t * apq;
+            B[q][q] = aqq + t * apq;
+            B[p][q] = 0; B[q][p] = 0;
+            for (let r = 0; r < N; r++) {
+              if (r !== p && r !== q) {
+                const arp = B[r][p], arq = B[r][q];
+                B[r][p] = B[p][r] = c * arp - s * arq;
+                B[r][q] = B[q][r] = s * arp + c * arq;
+              }
+              const vrp = V[r][p], vrq = V[r][q];
+              V[r][p] = c * vrp - s * vrq;
+              V[r][q] = s * vrp + c * vrq;
+            }
+          }
+        }
+      }
+      const idx = Array.from({ length: N }, (_, i) => i).sort((i, j) => B[j][j] - B[i][i]);
+      const S = new Float64Array(N);
+      const Ucols = [], Vcols = [];
+      for (let m = 0; m < N; m++) {
+        const j = idx[m];
+        const sigma = Math.sqrt(Math.max(0, B[j][j]));
+        S[m] = sigma;
+        const vcol = new Float64Array(N);
+        for (let r = 0; r < N; r++) vcol[r] = V[r][j];
+        Vcols.push(vcol);
+        const ucol = new Float64Array(N);
+        if (sigma > 1e-8) {
+          for (let r = 0; r < N; r++) {
+            let sum = 0;
+            for (let c = 0; c < N; c++) sum += A[r][c] * vcol[c];
+            ucol[r] = sum / sigma;
+          }
+        }
+        Ucols.push(ucol);
+      }
+      return { S, Ucols, Vcols };
+    }
+
+    function drawGrayMatrix(canvasEl, M, amplify = 1) {
+      const ctx = canvasEl.getContext('2d');
+      const imgData = ctx.createImageData(N, N);
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) {
+          const v = Math.round(Math.max(0, Math.min(1, M[y][x] * amplify)) * 255);
+          const o = (y * N + x) * 4;
+          imgData.data[o] = v; imgData.data[o+1] = v; imgData.data[o+2] = v; imgData.data[o+3] = 255;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    function updateCompression() {
+      const k = parseInt(document.getElementById('kSlider').value, 10);
+      document.getElementById('kReadout').textContent = `k = ${k} / ${N}`;
+      document.getElementById('reconCaption').textContent = tr('capRecon')(k);
+
+      const { S, Ucols, Vcols } = imgSVD;
+      const Ak = Array.from({ length: N }, () => new Float64Array(N));
+      for (let i = 0; i < k; i++) {
+        const sig = S[i], u = Ucols[i], v = Vcols[i];
+        for (let r = 0; r < N; r++) {
+          const su = sig * u[r];
+          for (let c = 0; c < N; c++) Ak[r][c] += su * v[c];
+        }
+      }
+      drawGrayMatrix(document.getElementById('reconCanvas'), Ak);
+
+      // Residual |A - Ak|
+      const Diff = Array.from({ length: N }, (_, r) => {
+        const row = new Float64Array(N);
+        for (let c = 0; c < N; c++) row[c] = Math.abs(imgMatrix[r][c] - Ak[r][c]);
+        return row;
+      });
+      drawGrayMatrix(document.getElementById('diffCanvas'), Diff, 3);
+
+      let totalE = 0, keptE = 0;
+      for (let i = 0; i < N; i++) { totalE += S[i]*S[i]; if (i < k) keptE += S[i]*S[i]; }
+      const energyPct = totalE > 0 ? (keptE / totalE) * 100 : 100;
+      const relErr = totalE > 0 ? Math.sqrt(Math.max(0, totalE - keptE) / totalE) : 0;
+      const storagePct = ((k * (2 * N + 1)) / (N * N)) * 100;
+
+      document.getElementById('stat-energy').textContent = energyPct.toFixed(1) + '%';
+      document.getElementById('stat-ratio').textContent = Math.min(100, storagePct).toFixed(1) + '%';
+      document.getElementById('stat-err').textContent = relErr.toFixed(3);
+
+      // Top singular values + cutoff pill
+      const pillsEl = document.getElementById('sigmaPills');
+      let html = '';
+      for (let i = 0; i < 4; i++) {
+        html += `<span class="sigma-pill">σ${i+1} = ${S[i].toFixed(2)}</span>`;
+      }
+      if (k < N) {
+        html += `<span class="sigma-pill cutoff">${tr('cutoffLabel')(k, S[k].toFixed(3))}</span>`;
+      } else {
+        html += `<span class="sigma-pill">${tr('exactLabel')}</span>`;
+      }
+      pillsEl.innerHTML = html;
+
+      drawSpectrum();
+    }
+
+    function drawSpectrum() {
+      if (!imgSVD) return;
+      const c = document.getElementById('specCanvas');
+      const ctx = c.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = c.getBoundingClientRect();
+      if (rect.width === 0) return;
+      c.width = Math.round(rect.width * dpr);
+      c.height = Math.round(235 * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const w = rect.width, h = 235, pad = 28;
+      const k = parseInt(document.getElementById('kSlider').value, 10);
+      const S = imgSVD.S;
+      const maxS = S[0] || 1;
+      const minLog = -4;
+      const maxLog = Math.log10(Math.max(maxS, 1e-4));
+
+      ctx.clearRect(0, 0, w, h);
+      const bw = (w - pad * 2) / N;
+      const plotH = h - pad * 2;
+
+      // Bars for singular values
+      for (let i = 0; i < N; i++) {
+        let ratio;
+        if (!logScale) {
+          ratio = S[i] / maxS;
+        } else {
+          const lv = Math.log10(Math.max(S[i], 1e-4));
+          ratio = Math.max(0, (lv - minLog) / (maxLog - minLog || 1));
+        }
+        const bh = ratio * plotH;
+        ctx.fillStyle = i < k ? '#38bdf8' : '#334155';
+        ctx.fillRect(pad + i * bw + 1, h - pad - bh, Math.max(2, bw - 2), bh);
+      }
+
+      // Cumulative energy curve (yellow)
+      let totalE = 0;
+      for (let i = 0; i < N; i++) totalE += S[i]*S[i];
+      if (totalE > 0) {
+        ctx.save();
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let cum = 0;
+        for (let i = 0; i < N; i++) {
+          cum += S[i]*S[i];
+          const x = pad + (i + 0.5) * bw;
+          const y = h - pad - (cum / totalE) * plotH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Highlight dot at k
+        let cumK = 0;
+        for (let i = 0; i < k; i++) cumK += S[i]*S[i];
+        const kx = pad + (k - 0.5) * bw;
+        const ky = h - pad - (cumK / totalE) * plotH;
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath(); ctx.arc(kx, ky, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px ui-monospace, monospace';
+      ctx.fillText(tr('specKept')(k), pad, 16);
+    }
+
+    function loadPattern(kind) {
+      imgMatrix = makePattern(kind);
+      drawGrayMatrix(document.getElementById('origCanvas'), imgMatrix);
+      imgSVD = computeSVD_NxN(imgMatrix);
+      updateCompression();
+    }
+
+    document.querySelectorAll('.pattern-btn').forEach(b => b.addEventListener('click', () => loadPattern(b.dataset.pat)));
+    document.getElementById('kSlider').addEventListener('input', updateCompression);
+    document.getElementById('imgUpload').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = () => {
+        const tmp = document.createElement('canvas');
+        tmp.width = N; tmp.height = N;
+        const tctx = tmp.getContext('2d');
+        tctx.drawImage(img, 0, 0, N, N);
+        const data = tctx.getImageData(0, 0, N, N).data;
+        const A = Array.from({ length: N }, () => new Float64Array(N));
+        for (let y = 0; y < N; y++) {
+          for (let x = 0; x < N; x++) {
+            const o = (y * N + x) * 4;
+            A[y][x] = (0.299 * data[o] + 0.587 * data[o+1] + 0.114 * data[o+2]) / 255;
+          }
+        }
+        imgMatrix = A;
+        drawGrayMatrix(document.getElementById('origCanvas'), imgMatrix);
+        imgSVD = computeSVD_NxN(imgMatrix);
+        updateCompression();
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    window.addEventListener('resize', () => { drawGeom(); drawSpectrum(); });
+    loadPattern('rings');
+    applyLang();
+  </script>
+</body>
+</html>
